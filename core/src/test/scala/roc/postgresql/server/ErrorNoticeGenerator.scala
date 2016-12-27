@@ -2,7 +2,7 @@ package roc
 package postgresql
 package server
 
-import cats.std.all._
+import cats.instances.all._
 import cats.syntax.eq._
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Prop.forAll

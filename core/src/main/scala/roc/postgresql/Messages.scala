@@ -2,7 +2,7 @@ package roc
 package postgresql
 
 import cats.Eq
-import cats.std.all._
+import cats.instances.all._
 import cats.syntax.eq._
 import com.twitter.util.Future
 import java.nio.charset.StandardCharsets

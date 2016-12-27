@@ -1,7 +1,7 @@
 package roc
 package postgresql
 
-import cats.std.all._
+import cats.instances.all._
 import cats.syntax.eq._
 import com.twitter.finagle.dispatch.GenSerialClientDispatcher
 import com.twitter.finagle.transport.Transport

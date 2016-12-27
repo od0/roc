@@ -5,7 +5,7 @@ package server
 import cats.data.Validated._
 import cats.data.{NonEmptyList, Validated}
 import cats.Semigroup
-import cats.std.all._
+import cats.instances.all._
 import cats.syntax.eq._
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Prop.forAll

@@ -2,6 +2,7 @@ package roc
 package postgresql
 package transport
 
+import cats.implicits._
 import roc.postgresql.failures.{Failure, PacketDecodingFailure}
 import roc.postgresql.server.PostgresqlMessage
 import scala.collection.mutable.ListBuffer

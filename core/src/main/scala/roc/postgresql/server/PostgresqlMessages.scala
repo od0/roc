@@ -3,9 +3,10 @@ package postgresql
 package server
 
 import cats.data.Validated._
-import cats.data.{NonEmptyList, Validated, ValidatedNel, Either}
+import cats.data.{NonEmptyList, Validated, ValidatedNel}
 import cats.Semigroup
-import cats.std.all._
+import cats.implicits._
+import cats.instances.all._
 import cats.syntax.eq._
 import roc.postgresql.failures.{PostgresqlMessageDecodingFailure, Failure}
 
@@ -20,7 +21,7 @@ import roc.postgresql.failures.{PostgresqlMessageDecodingFailure, Failure}
 
   /** The severity of the Error or Notice
     *
-    * The field contents are ERROR, FATAL, or PANIC (in an error message), or WARNING, NOTICE, 
+    * The field contents are ERROR, FATAL, or PANIC (in an error message), or WARNING, NOTICE,
     * DEBUG, INFO, or LOG (in a notice message), or a localized translation of one of these.
     * @note Always present.
     * @see [[http://www.postgresql.org/docs/current/static/protocol-error-fields.html]]
@@ -52,7 +53,7 @@ import roc.postgresql.failures.{PostgresqlMessageDecodingFailure, Failure}
 
   /** A optional suggestion what to do about the problem.
     *
-    * This is intended to differ from Detail in that it offers advice 
+    * This is intended to differ from Detail in that it offers advice
     * (potentially inappropriate) rather than hard facts. Might run to multiple lines.
     * @see [[http://www.postgresql.org/docs/current/static/protocol-error-fields.html]]
     */
@@ -60,8 +61,8 @@ import roc.postgresql.failures.{PostgresqlMessageDecodingFailure, Failure}
 
   /** Indicates an error cursor position as an index into the original query string.
     *
-    * The field value is a decimal ASCII integer, indicating an error cursor position 
-    * as an index into the original query string. The first character has index 1, and 
+    * The field value is a decimal ASCII integer, indicating an error cursor position
+    * as an index into the original query string. The first character has index 1, and
     * positions are measured in characters not bytes.
     * @see [[http://www.postgresql.org/docs/current/static/protocol-error-fields.html]]
     */
@@ -69,7 +70,7 @@ import roc.postgresql.failures.{PostgresqlMessageDecodingFailure, Failure}
 
   /** Indicates an error cursor postion as an index of an internally generated command.
     *
-    * This is defined the same as [[position]], but it is used when the cursor position refers 
+    * This is defined the same as [[position]], but it is used when the cursor position refers
     * to an internally generated command rather than the one submitted by the client. The
     * [[internalQuery]] field will always appear when this field appears.
     * @see [[http://www.postgresql.org/docs/current/static/protocol-error-fields.html]]
@@ -85,7 +86,7 @@ import roc.postgresql.failures.{PostgresqlMessageDecodingFailure, Failure}
 
   /** An indication of the context in which the error occurred.
     *
-    * Presently this includes a call stack traceback of active procedural language functions 
+    * Presently this includes a call stack traceback of active procedural language functions
     * and internally-generated queries. The trace is one entry per line, most recent first.
     * @see [[http://www.postgresql.org/docs/current/static/protocol-error-fields.html]]
     */
@@ -93,7 +94,7 @@ import roc.postgresql.failures.{PostgresqlMessageDecodingFailure, Failure}
 
   /** The name of the schema containing that object.
     *
-    * If the error was associated with a specific database object, the name of the schema 
+    * If the error was associated with a specific database object, the name of the schema
     * containing that object, if any.
     * @see [[http://www.postgresql.org/docs/current/static/protocol-error-fields.html]]
     */
@@ -101,7 +102,7 @@ import roc.postgresql.failures.{PostgresqlMessageDecodingFailure, Failure}
 
   /** The name of the table.
     *
-    * If the error was associated with a specific table, the name of the table. 
+    * If the error was associated with a specific table, the name of the table.
     * (Refer to the schema name field for the name of the table's schema.)
     * @see [[http://www.postgresql.org/docs/current/static/protocol-error-fields.html]]
     */
@@ -109,7 +110,7 @@ import roc.postgresql.failures.{PostgresqlMessageDecodingFailure, Failure}
 
   /** The name of the column.
     *
-    * If the error was associated with a specific table column, the name of the column. 
+    * If the error was associated with a specific table column, the name of the column.
     * (Refer to the schema and table name fields to identify the table.)
     * @see [[http://www.postgresql.org/docs/current/static/protocol-error-fields.html]]
     */
@@ -117,7 +118,7 @@ import roc.postgresql.failures.{PostgresqlMessageDecodingFailure, Failure}
 
   /** The name of the data type.
     *
-    * If the error was associated with a specific data type, the name of the data type. 
+    * If the error was associated with a specific data type, the name of the data type.
     * (Refer to the schema name field for the name of the data type's schema.)
     * @see [[http://www.postgresql.org/docs/current/static/protocol-error-fields.html]]
     */
@@ -125,8 +126,8 @@ import roc.postgresql.failures.{PostgresqlMessageDecodingFailure, Failure}
 
   /** The name of the constraint.
     *
-    * If the error was associated with a specific constraint, the name of the constraint. 
-    * Refer to fields listed above for the associated table or domain. (For this purpose, indexes 
+    * If the error was associated with a specific constraint, the name of the constraint.
+    * Refer to fields listed above for the associated table or domain. (For this purpose, indexes
     * are treated as constraints, even if they weren't created with constraint syntax.)
     * @see [[http://www.postgresql.org/docs/current/static/protocol-error-fields.html]]
     */
@@ -148,7 +149,7 @@ import roc.postgresql.failures.{PostgresqlMessageDecodingFailure, Failure}
   val routine: Option[String] = params.routine
 
   override def toString: String = {
-    val xs = List(("Detail: ", detail), ("Hint: ", hint), ("Position: ", position), 
+    val xs = List(("Detail: ", detail), ("Hint: ", hint), ("Position: ", position),
       ("Internal Position: ", internalPosition), ("Internal Query: ", internalQuery),
       ("Where: ", where), ("Schema Name: ", schemaName), ("Table Name: ", tableName),
       ("Column Name: ", columnName), ("Data Type Name: ", dataTypeName), ("Constaint Name: ",
@@ -163,11 +164,11 @@ import roc.postgresql.failures.{PostgresqlMessageDecodingFailure, Failure}
 
 }
 
-private[postgresql] case class ErrorParams(severity: String, code: String, message: String, 
+private[postgresql] case class ErrorParams(severity: String, code: String, message: String,
   detail: Option[String], hint: Option[String], position: Option[String],
-  internalPosition: Option[String], internalQuery: Option[String], where: Option[String], 
+  internalPosition: Option[String], internalQuery: Option[String], where: Option[String],
   schemaName: Option[String], tableName: Option[String], columnName: Option[String],
-  dataTypeName: Option[String], constraintName: Option[String], file: Option[String], 
+  dataTypeName: Option[String], constraintName: Option[String], file: Option[String],
   line: Option[String], routine: Option[String])
 
 private[postgresql] case class RequiredParams(severity: String, code: String, message: String)
@@ -184,7 +185,7 @@ private[postgresql] object PostgresqlMessage {
     })
 
   // private to server for testing
-  private[server] def buildParamsFromTuples(xs: List[Field]): 
+  private[server] def buildParamsFromTuples(xs: List[Field]):
     Either[PostgresqlMessageDecodingFailure, ErrorParams] = {
       val detail           = extractValueByCode(Detail, xs)
       val hint             = extractValueByCode(Hint, xs)
@@ -214,14 +215,14 @@ private[postgresql] object PostgresqlMessage {
         case None    => Invalid("Required Message was not present.")
       }
 
-      validatePacket(severity.toValidatedNel, code.toValidatedNel, 
+      validatePacket(severity.toValidatedNel, code.toValidatedNel,
         message.toValidatedNel)(RequiredParams.apply)
         .fold(
           {l => Left(new PostgresqlMessageDecodingFailure(l))},
           {r => Right(new ErrorParams(severity = r.severity, code = r.code, message = r.message,
             detail = detail, hint = hint, position = position, internalPosition = internalPosition,
             internalQuery = internalQuery, where = where, schemaName = schemaName,
-            tableName = tableName, columnName = columnName, dataTypeName = dataTypeName, 
+            tableName = tableName, columnName = columnName, dataTypeName = dataTypeName,
             constraintName = constraintName, file = file, line = line, routine = routine))}
         )
     }
@@ -241,14 +242,14 @@ private[postgresql] object PostgresqlMessage {
         case (Valid(_), Invalid(e1), Invalid(e2))    => Invalid(Semigroup[E].combine(e1, e2))
         case (Invalid(e1), Valid(_), Invalid(e2))    => Invalid(Semigroup[E].combine(e1, e2))
         case (Invalid(e1), Invalid(e2), Valid(_))    => Invalid(Semigroup[E].combine(e1, e2))
-        case (Invalid(e1), Invalid(e2), Invalid(e3)) => 
+        case (Invalid(e1), Invalid(e2), Invalid(e3)) =>
           Invalid(Semigroup[E].combine(e1, Semigroup[E].combine(e2, e3)))
       }
 }
 
 /** Represents an unknown or undefined message.
   *
-  * From Postgresql Documentation: "Since more field types might be added in future, 
+  * From Postgresql Documentation: "Since more field types might be added in future,
   * frontends should silently ignore fields of unrecognized type." Therefore, if we decode
   * an Error we do not recognize, we do not create a Failed Decoding Result.
   */
