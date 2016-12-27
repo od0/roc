@@ -3,7 +3,7 @@ package postgresql
 package server
 
 import cats.data.Validated._
-import cats.data.{NonEmptyList, Validated, ValidatedNel, Xor}
+import cats.data.{NonEmptyList, Validated, ValidatedNel, Either}
 import cats.Semigroup
 import cats.std.all._
 import cats.syntax.eq._
@@ -175,17 +175,17 @@ private[postgresql] case class RequiredParams(severity: String, code: String, me
 private[postgresql] object PostgresqlMessage {
   import ErrorNoticeMessageFields._
 
-  def apply(xs: Fields): Xor[Failure, PostgresqlMessage] =
+  def apply(xs: Fields): Either[Failure, PostgresqlMessage] =
     buildParamsFromTuples(xs).flatMap(x => x.code.take(2) match {
-      case ErrorClassCodes.SuccessfulCompletion => Xor.Right(new SuccessMessage(x))
-      case code if ErrorClassCodes.WarningCodes.contains(code) => Xor.Right(new WarningMessage(x))
-      case code if ErrorClassCodes.ErrorCodes.contains(code) => Xor.Right(new ErrorMessage(x))
-      case code => Xor.Right(new UnknownMessage(x))
+      case ErrorClassCodes.SuccessfulCompletion => Right(new SuccessMessage(x))
+      case code if ErrorClassCodes.WarningCodes.contains(code) => Right(new WarningMessage(x))
+      case code if ErrorClassCodes.ErrorCodes.contains(code) => Right(new ErrorMessage(x))
+      case code => Right(new UnknownMessage(x))
     })
 
   // private to server for testing
   private[server] def buildParamsFromTuples(xs: List[Field]): 
-    Xor[PostgresqlMessageDecodingFailure, ErrorParams] = {
+    Either[PostgresqlMessageDecodingFailure, ErrorParams] = {
       val detail           = extractValueByCode(Detail, xs)
       val hint             = extractValueByCode(Hint, xs)
       val position         = extractValueByCode(Position, xs)
@@ -217,8 +217,8 @@ private[postgresql] object PostgresqlMessage {
       validatePacket(severity.toValidatedNel, code.toValidatedNel, 
         message.toValidatedNel)(RequiredParams.apply)
         .fold(
-          {l => Xor.Left(new PostgresqlMessageDecodingFailure(l))},
-          {r => Xor.Right(new ErrorParams(severity = r.severity, code = r.code, message = r.message,
+          {l => Left(new PostgresqlMessageDecodingFailure(l))},
+          {r => Right(new ErrorParams(severity = r.severity, code = r.code, message = r.message,
             detail = detail, hint = hint, position = position, internalPosition = internalPosition,
             internalQuery = internalQuery, where = where, schemaName = schemaName,
             tableName = tableName, columnName = columnName, dataTypeName = dataTypeName, 

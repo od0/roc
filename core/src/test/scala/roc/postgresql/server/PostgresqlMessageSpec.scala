@@ -3,7 +3,7 @@ package postgresql
 package server
 
 import cats.data.Validated._
-import cats.data.{NonEmptyList, Validated, Xor}
+import cats.data.{NonEmptyList, Validated}
 import cats.Semigroup
 import cats.std.all._
 import cats.syntax.eq._
@@ -20,10 +20,10 @@ final class PostgresqlMessageSpec extends Specification with ScalaCheck { def is
 
   PostgresqlMessage
     must extract the value of a tuple by the Code                                       ${PE().testExtractValueByCode}
-    must return Xor.Right(UnknownMessage(ErrorParams)) when given unknown SQLSTATE Code ${PE().testUnknownMessage}
-    must return Xor.Right(SuccesfulMessage) when given a valid Succes Code              ${PE().testSuccessfulMessage}
-    must return Xor.Right(WarningMessage(ErrorParams)) when given a Warning Code        ${PE().testWarningMessages}
-    must return Xor.Right(ErrorMessage(ErrorParams)) when given an Error Code           ${PE().testErrorMessages}
+    must return Right(UnknownMessage(ErrorParams)) when given unknown SQLSTATE Code ${PE().testUnknownMessage}
+    must return Right(SuccesfulMessage) when given a valid Succes Code              ${PE().testSuccessfulMessage}
+    must return Right(WarningMessage(ErrorParams)) when given a Warning Code        ${PE().testWarningMessages}
+    must return Right(ErrorMessage(ErrorParams)) when given an Error Code           ${PE().testErrorMessages}
 
   ValidatePacket
     must return RequiredParams when fields are valid                             ${VP().testAllValid}
@@ -36,8 +36,8 @@ final class PostgresqlMessageSpec extends Specification with ScalaCheck { def is
     must return Invalid when Severity & SQLSTATE Code & Message are not present  ${VP().testInvalidAll}
 
   BuildParamsFromTuples
-    must return Xor.Right(ErrorParams) when given valid Fields                    ${BPFT().testValidFields}
-    must return Xor.Left(PostgresqlMessageDecodingFailure) when given invalid Fields  ${BPFT().testInvalidFields}
+    must return Right(ErrorParams) when given valid Fields                    ${BPFT().testValidFields}
+    must return Left(PostgresqlMessageDecodingFailure) when given invalid Fields  ${BPFT().testInvalidFields}
     must have correct Error Message when Severity is invalid                      ${BPFT().testSeverityMessage}
     must have correct Error Message when SQLSTATECode is invalid                  ${BPFT().testSqlStateCodeMessage}
     must have correct Error Message when Message is invalid                       ${BPFT().testMessageMessage}
@@ -78,19 +78,19 @@ final class PostgresqlMessageSpec extends Specification with ScalaCheck { def is
     }
 
     val testUnknownMessage = forAll(unknownErrorGen) { x: FieldsAndErrorParams =>
-      PostgresqlMessage(x.fields) must_== Xor.Right(UnknownMessage(x.errorParams)) 
+      PostgresqlMessage(x.fields) must_== Right(UnknownMessage(x.errorParams))
     }
 
     val testSuccessfulMessage = forAll(successfulMessageGen) { x: FieldsAndErrorParams =>
-      PostgresqlMessage(x.fields) must_== Xor.Right(SuccessMessage(x.errorParams))
+      PostgresqlMessage(x.fields) must_== Right(SuccessMessage(x.errorParams))
     }
 
     val testWarningMessages = forAll(warningMessageGen) { x: FieldsAndErrorParams =>
-      PostgresqlMessage(x.fields) must_== Xor.Right(WarningMessage(x.errorParams))
+      PostgresqlMessage(x.fields) must_== Right(WarningMessage(x.errorParams))
     }
 
     val testErrorMessages = forAll(errorMessageGen) { x: FieldsAndErrorParams =>
-      PostgresqlMessage(x.fields) must_== Xor.Right(ErrorMessage(x.errorParams))
+      PostgresqlMessage(x.fields) must_== Right(ErrorMessage(x.errorParams))
     }
   }
 
@@ -135,7 +135,7 @@ final class PostgresqlMessageSpec extends Specification with ScalaCheck { def is
       actual must_== expected
     }
 
-    val testInvalidMessage = forAll(invalidMessageFieldsGen) { xs: Fields => 
+    val testInvalidMessage = forAll(invalidMessageFieldsGen) { xs: Fields =>
       val severity = extractSeverity(xs)
       val code     = extractCode(xs)
       val message  = extractMessage(xs)
@@ -173,7 +173,7 @@ final class PostgresqlMessageSpec extends Specification with ScalaCheck { def is
 
       actual must_== expected
     }
-    
+
     val testInvalidSeveritySqlStateCode = forAll(invalidSeveritySqlStateCodeFieldsGen) { xs: Fields =>
       val severity = extractSeverity(xs)
       val code     = extractCode(xs)
@@ -200,17 +200,17 @@ final class PostgresqlMessageSpec extends Specification with ScalaCheck { def is
       actual must_== expected
     }
 
-    private def extractSeverity(xs: Fields): Validated[String, String] = 
+    private def extractSeverity(xs: Fields): Validated[String, String] =
       xs.find(_._1 === Severity) match {
         case Some(x) => Valid(x._2)
         case None    => Invalid("Required Severity Level was not present.")
       }
-    private def extractCode(xs: Fields): Validated[String, String] = 
+    private def extractCode(xs: Fields): Validated[String, String] =
       xs.find(_._1 === ErrorNoticeMessageFields.Code) match {
         case Some(x) => Valid(x._2)
         case None    => Invalid("Required SQLSTATE Code was not present.")
       }
-    private def extractMessage(xs: Fields): Validated[String, String] = 
+    private def extractMessage(xs: Fields): Validated[String, String] =
       xs.find(_._1 === Message) match {
         case Some(x) => Valid(x._2)
         case None    => Invalid("Required Message was not present.")
@@ -224,7 +224,7 @@ final class PostgresqlMessageSpec extends Specification with ScalaCheck { def is
         case (Invalid(e1), Invalid(e2), Valid(_))    => Invalid(Semigroup[E].combine(e1, e2))
         case (Invalid(e1), Valid(_), Invalid(e2))    => Invalid(Semigroup[E].combine(e1, e2))
         case (Valid(_), Invalid(e1), Invalid(e2))    => Invalid(Semigroup[E].combine(e1, e2))
-        case (Invalid(e1), Invalid(e2), Invalid(e3)) => 
+        case (Invalid(e1), Invalid(e2), Invalid(e3)) =>
           Invalid(Semigroup[E].combine(e1, Semigroup[E].combine(e2, e3)))
       }
   }
@@ -243,21 +243,21 @@ final class PostgresqlMessageSpec extends Specification with ScalaCheck { def is
       val xs = List((ErrorNoticeMessageFields.Code, "Foo"), (Message, "Bar"))
       val actual = PostgresqlMessage.buildParamsFromTuples(xs)
       val nel = NonEmptyList("Required Severity Level was not present.")
-      actual must_== Xor.Left(new PostgresqlMessageDecodingFailure(nel))
+      actual must_== Left(new PostgresqlMessageDecodingFailure(nel))
     }
 
     val testSqlStateCodeMessage = {
       val xs = List((Severity, "Foo"), (Message, "Bar"))
       val actual = PostgresqlMessage.buildParamsFromTuples(xs)
       val nel = NonEmptyList("Required SQLSTATE Code was not present.")
-      actual must_== Xor.Left(new PostgresqlMessageDecodingFailure(nel))
+      actual must_== Left(new PostgresqlMessageDecodingFailure(nel))
     }
 
     val testMessageMessage = {
       val xs = List((Severity, "Foo"), (ErrorNoticeMessageFields.Code, "Bar"))
       val actual = PostgresqlMessage.buildParamsFromTuples(xs)
       val nel = NonEmptyList("Required Message was not present.")
-      actual must_== Xor.Left(new PostgresqlMessageDecodingFailure(nel))
+      actual must_== Left(new PostgresqlMessageDecodingFailure(nel))
     }
 
     val testSeveritySqlStateCodeMessage = {
@@ -265,7 +265,7 @@ final class PostgresqlMessageSpec extends Specification with ScalaCheck { def is
       val actual = PostgresqlMessage.buildParamsFromTuples(xs)
       val nel = NonEmptyList("Required Severity Level was not present.",
         "Required SQLSTATE Code was not present.")
-      actual must_== Xor.Left(new PostgresqlMessageDecodingFailure(nel))
+      actual must_== Left(new PostgresqlMessageDecodingFailure(nel))
     }
 
     val testSeverityMessageMessage = {
@@ -273,7 +273,7 @@ final class PostgresqlMessageSpec extends Specification with ScalaCheck { def is
       val actual = PostgresqlMessage.buildParamsFromTuples(xs)
       val nel = NonEmptyList("Required Severity Level was not present.",
         "Required Message was not present.")
-      actual must_== Xor.Left(new PostgresqlMessageDecodingFailure(nel))
+      actual must_== Left(new PostgresqlMessageDecodingFailure(nel))
     }
 
     val testSqlStateCodeMessageMessage = {
@@ -281,7 +281,7 @@ final class PostgresqlMessageSpec extends Specification with ScalaCheck { def is
       val actual = PostgresqlMessage.buildParamsFromTuples(xs)
       val nel = NonEmptyList("Required SQLSTATE Code was not present.",
         "Required Message was not present.")
-      actual must_== Xor.Left(new PostgresqlMessageDecodingFailure(nel))
+      actual must_== Left(new PostgresqlMessageDecodingFailure(nel))
     }
 
     val testNoRequiredFieldsFoundMessage = {
@@ -290,7 +290,7 @@ final class PostgresqlMessageSpec extends Specification with ScalaCheck { def is
       val nel = NonEmptyList("Required Severity Level was not present.",
         "Required SQLSTATE Code was not present.",
         "Required Message was not present.")
-      actual must_== Xor.Left(new PostgresqlMessageDecodingFailure(nel))
+      actual must_== Left(new PostgresqlMessageDecodingFailure(nel))
     }
   }
 
@@ -384,7 +384,7 @@ final class PostgresqlMessageSpec extends Specification with ScalaCheck { def is
   case class EM() extends ErrorNoticeGen {
     val testMessage = forAll(errMsgAndRequiredFieldsGen) { x: ErrorMessageAndRequiredFields =>
       val xs = x.errorParams
-      val ys = List(("Detail: ", xs.detail), ("Hint: ", xs.hint), ("Position: ", xs.position), 
+      val ys = List(("Detail: ", xs.detail), ("Hint: ", xs.hint), ("Position: ", xs.position),
         ("Internal Position: ", xs.internalPosition), ("Internal Query: ", xs.internalQuery),
         ("Where: ", xs.where), ("Schema Name: ", xs.schemaName), ("Table Name: ", xs.tableName),
         ("Column Name: ", xs.columnName), ("Data Type Name: ", xs.dataTypeName), ("Constaint Name: ",
@@ -394,9 +394,8 @@ final class PostgresqlMessageSpec extends Specification with ScalaCheck { def is
         .foldLeft("")((x,y) => x + y._1 + y._2 + "\n")
       val requiredString = s"${xs.severity} - ${xs.message}. SQLSTATE: ${xs.code}."
 
-      val expectedMessage = requiredString + "\n" + optString 
+      val expectedMessage = requiredString + "\n" + optString
       x.error.toString must_== expectedMessage
     }
   }
 }
-

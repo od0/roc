@@ -1,7 +1,6 @@
 package roc
 package postgresql
 
-import cats.data.Xor
 import cats.Show
 import java.nio.charset.StandardCharsets
 import roc.postgresql.failures.{ElementNotFoundFailure, UnsupportedDecodingFailure}
@@ -48,21 +47,21 @@ final class Result(rowDescription: List[RowDescription], data: List[DataRow], cc
 
   /** The command tag. This is usually a single word that identifies which SQL command was completed.
     *
-    * For an INSERT command, the tag is INSERT oid rows, where rows is the number of rows inserted. 
+    * For an INSERT command, the tag is INSERT oid rows, where rows is the number of rows inserted.
     *  oid is the object ID of the inserted row if rows is 1 and the target table has OIDs;
     *   otherwise oid is 0.
     *
     * For a DELETE command, the tag is DELETE rows where rows is the number of rows deleted.
-    * 
+    *
     * For an UPDATE command, the tag is UPDATE rows where rows is the number of rows updated.
     *
-    * For a SELECT or CREATE TABLE AS command, the tag is SELECT rows where rows is the number of 
+    * For a SELECT or CREATE TABLE AS command, the tag is SELECT rows where rows is the number of
     *   rows retrieved.
     *
-    * For a MOVE command, the tag is MOVE rows where rows is the number of rows the cursor's 
+    * For a MOVE command, the tag is MOVE rows where rows is the number of rows the cursor's
     *  position has been changed by.
     *
-    * For a FETCH command, the tag is FETCH rows where rows is the number of rows that have been 
+    * For a FETCH command, the tag is FETCH rows where rows is the number of rows that have been
     *   retrieved from the cursor.
     * @see [[http://www.postgresql.org/docs/current/static/protocol-message-formats.html
     *   CommandComplete]]
@@ -97,14 +96,14 @@ final case class Column private[roc](name: Symbol, columnType: Int, formatCode: 
 }
 object Column {
   implicit val columnShow: Show[Column] = new Show[Column] {
-    def show(c: Column): String = 
+    def show(c: Column): String =
       s"Column(name=${c.name}, columnType=${c.columnType}, formatCode=${c.formatCode})"
   }
 }
 
 /** A row returned from a Postgresql Server containing at least one
   *  [[Element]]
-  * @param elements a collection of all [[row.postgresql.Element Elements]] returned from 
+  * @param elements a collection of all [[row.postgresql.Element Elements]] returned from
   *   Postgresql via a query.
   */
 final class Row private[postgresql](private[postgresql] val elements: List[Element]) {
@@ -112,7 +111,7 @@ final class Row private[postgresql](private[postgresql] val elements: List[Eleme
   /** Returns the [[roc.postgresql.Element Element]] found via the column name
     *
     * @param columnName the column name given the associated [[roc.postgresql.Element Element]]
-    * @return the element found via the column name 
+    * @return the element found via the column name
     */
   def get(columnName: Symbol): Element = elements.find(_.name == columnName) match {
     case Some(e) => e
@@ -144,7 +143,7 @@ sealed abstract class Element(val name: Symbol, columnType: Int) {
     * @param f an implicit [[ElementDecoder]] typeclass
     * @return A
     */
-  def as[A](implicit f: ElementDecoder[A]): A = 
+  def as[A](implicit f: ElementDecoder[A]): A =
     fold(f.textDecoder, f.binaryDecoder, f.nullDecoder)
 
   /** Decodes this element as a String
@@ -156,7 +155,7 @@ sealed abstract class Element(val name: Symbol, columnType: Int) {
     {(s: String) => s},
     {(bs: Array[Byte]) =>
       throw new UnsupportedDecodingFailure(s"Attempted String decoding of Binary column.")},
-    {() => 
+    {() =>
       throw new UnsupportedDecodingFailure(s"Attempted String decoding of Null column.")}
   )
 
@@ -165,11 +164,11 @@ sealed abstract class Element(val name: Symbol, columnType: Int) {
     * @see [[http://www.postgresql.org/docs/current/static/protocol-overview.html
     *   50.1.3 Formats and Format Codes]]
     * @note Binary representations for integers use network byte order (most significant byte first).
-    *  For other data types consult the documentation or source code to learn about the binary 
+    *  For other data types consult the documentation or source code to learn about the binary
     *  representation.
     */
   def asBytes(): Array[Byte] = fold(
-    {(s: String) => 
+    {(s: String) =>
       throw new UnsupportedDecodingFailure(s"Attempted Binary decoding of String column.")},
     {(bs: Array[Byte]) => bs},
     {() =>
@@ -178,7 +177,7 @@ sealed abstract class Element(val name: Symbol, columnType: Int) {
 }
 
 case class Null(override val name: Symbol, columnType: Int) extends Element(name, columnType)
-case class Text(override val name: Symbol, columnType: Int, value: String) 
+case class Text(override val name: Symbol, columnType: Int, value: String)
   extends Element(name, columnType)
 case class Binary(override val name: Symbol, columnType: Int, value: Array[Byte])
   extends Element(name, columnType)

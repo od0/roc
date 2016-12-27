@@ -1,7 +1,7 @@
 package roc
 package types
 
-import cats.data.{Validated, Xor}
+import cats.data.Validated
 import io.netty.buffer.Unpooled
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
@@ -14,7 +14,7 @@ import roc.types.failures._
 
 object decoders {
 
-  implicit def optionElementDecoder[A](implicit f: ElementDecoder[A]) = 
+  implicit def optionElementDecoder[A](implicit f: ElementDecoder[A]) =
     new ElementDecoder[Option[A]] {
       def textDecoder(text: String): Option[A]         = Some(f.textDecoder(text))
       def binaryDecoder(bytes: Array[Byte]): Option[A] = Some(f.binaryDecoder(bytes))
@@ -28,13 +28,13 @@ object decoders {
   }
 
   implicit val shortElementDecoder: ElementDecoder[Short] = new ElementDecoder[Short] {
-    def textDecoder(text: String): Short         = Xor.catchNonFatal(
+    def textDecoder(text: String): Short         = Either.catchNonFatal(
       text.toShort
     ).fold(
       {l => throw new ElementDecodingFailure("SHORT", l)},
       {r => r}
     )
-    def binaryDecoder(bytes: Array[Byte]): Short = Xor.catchNonFatal({
+    def binaryDecoder(bytes: Array[Byte]): Short = Either.catchNonFatal({
       val buffer = Unpooled.buffer(2)
       buffer.writeBytes(bytes.take(2))
       buffer.readShort
@@ -46,13 +46,13 @@ object decoders {
   }
 
   implicit val intElementDecoder: ElementDecoder[Int] = new ElementDecoder[Int] {
-    def textDecoder(text: String): Int         = Xor.catchNonFatal(
+    def textDecoder(text: String): Int         = Either.catchNonFatal(
       text.toInt
     ).fold(
       {l => throw new ElementDecodingFailure("INT", l)},
       {r => r}
     )
-    def binaryDecoder(bytes: Array[Byte]): Int = Xor.catchNonFatal({
+    def binaryDecoder(bytes: Array[Byte]): Int = Either.catchNonFatal({
       val buffer = Unpooled.buffer(4)
       buffer.writeBytes(bytes.take(4))
       buffer.readInt
@@ -64,13 +64,13 @@ object decoders {
   }
 
   implicit val longElementDecoder: ElementDecoder[Long] = new ElementDecoder[Long] {
-    def textDecoder(text: String): Long         = Xor.catchNonFatal(
+    def textDecoder(text: String): Long         = Either.catchNonFatal(
       text.toLong
     ).fold(
       {l => throw new ElementDecodingFailure("LONG", l)},
       {r => r}
     )
-    def binaryDecoder(bytes: Array[Byte]): Long = Xor.catchNonFatal({
+    def binaryDecoder(bytes: Array[Byte]): Long = Either.catchNonFatal({
       val buffer = Unpooled.buffer(8)
       buffer.writeBytes(bytes.take(8))
       buffer.readLong
@@ -78,17 +78,17 @@ object decoders {
       {l => throw new ElementDecodingFailure("LONG", l)},
       {r => r}
     )
-    def nullDecoder: Long                       = throw new NullDecodedFailure("LONG") 
+    def nullDecoder: Long                       = throw new NullDecodedFailure("LONG")
   }
 
   implicit val floatElementDecoder: ElementDecoder[Float] = new ElementDecoder[Float] {
-    def textDecoder(text: String): Float         = Xor.catchNonFatal(
+    def textDecoder(text: String): Float         = Either.catchNonFatal(
       text.toFloat
     ).fold(
       {l => throw new ElementDecodingFailure("FLOAT", l)},
       {r => r}
     )
-    def binaryDecoder(bytes: Array[Byte]): Float = Xor.catchNonFatal({
+    def binaryDecoder(bytes: Array[Byte]): Float = Either.catchNonFatal({
       val buffer = Unpooled.buffer(4)
       buffer.writeBytes(bytes.take(4))
       buffer.readFloat
@@ -100,13 +100,13 @@ object decoders {
   }
 
   implicit val doubleElementDecoder: ElementDecoder[Double] = new ElementDecoder[Double] {
-    def textDecoder(text: String): Double         = Xor.catchNonFatal(
+    def textDecoder(text: String): Double         = Either.catchNonFatal(
       text.toDouble
     ).fold(
       {l => throw new ElementDecodingFailure("DOUBLE", l)},
       {r => r}
     )
-    def binaryDecoder(bytes: Array[Byte]): Double = Xor.catchNonFatal({
+    def binaryDecoder(bytes: Array[Byte]): Double = Either.catchNonFatal({
       val buffer = Unpooled.buffer(8)
       buffer.writeBytes(bytes.take(8))
       buffer.readDouble
@@ -118,14 +118,14 @@ object decoders {
   }
 
   implicit val booleanElementDecoder: ElementDecoder[Boolean] = new ElementDecoder[Boolean] {
-    def textDecoder(text: String): Boolean         = Xor.catchNonFatal(text.head match {
+    def textDecoder(text: String): Boolean         = Either.catchNonFatal(text.head match {
       case 't' => true
       case 'f' => false
     }).fold(
      {l => throw new ElementDecodingFailure("BOOLEAN", l)},
      {r => r}
     )
-    def binaryDecoder(bytes: Array[Byte]): Boolean = Xor.catchNonFatal(bytes.head match {
+    def binaryDecoder(bytes: Array[Byte]): Boolean = Either.catchNonFatal(bytes.head match {
       case 0x00 => false
       case 0x01 => true
     }).fold(
@@ -136,11 +136,11 @@ object decoders {
   }
 
   implicit val charElementDecoder: ElementDecoder[Char] = new ElementDecoder[Char] {
-    def textDecoder(text: String): Char         = Xor.catchNonFatal(text.head.toChar).fold(
+    def textDecoder(text: String): Char         = Either.catchNonFatal(text.head.toChar).fold(
       {l => throw new ElementDecodingFailure("CHAR", l)},
       {r => r}
     )
-    def binaryDecoder(bytes: Array[Byte]): Char = Xor.catchNonFatal(bytes.head.toChar).fold(
+    def binaryDecoder(bytes: Array[Byte]): Char = Either.catchNonFatal(bytes.head.toChar).fold(
       {l => throw new ElementDecodingFailure("CHAR", l)},
       {r => r}
     )
@@ -165,11 +165,11 @@ object decoders {
   }
 
   implicit val dateElementDecoders: ElementDecoder[Date] = new ElementDecoder[Date] {
-    def textDecoder(text: String): Date         = Xor.catchNonFatal(LocalDate.parse(text)).fold(
+    def textDecoder(text: String): Date         = Either.catchNonFatal(LocalDate.parse(text)).fold(
       {l => throw new ElementDecodingFailure("DATE", l)},
       {r => r}
     )
-    def binaryDecoder(bytes: Array[Byte]): Date = Xor.catchNonFatal({
+    def binaryDecoder(bytes: Array[Byte]): Date = Either.catchNonFatal({
       val text = new String(bytes, StandardCharsets.UTF_8)
       LocalDate.parse(text)
     }).fold(
@@ -180,11 +180,11 @@ object decoders {
   }
 
   implicit val localTimeElementDecoders: ElementDecoder[Time] = new ElementDecoder[Time] {
-    def textDecoder(text: String): Time         = Xor.catchNonFatal(LocalTime.parse(text)).fold(
+    def textDecoder(text: String): Time         = Either.catchNonFatal(LocalTime.parse(text)).fold(
       {l => throw new ElementDecodingFailure("TIME", l)},
       {r => r}
     )
-    def binaryDecoder(bytes: Array[Byte]): Time = Xor.catchNonFatal({
+    def binaryDecoder(bytes: Array[Byte]): Time = Either.catchNonFatal({
       val text = new String(bytes, StandardCharsets.UTF_8)
       LocalTime.parse(text)
     }).fold(
@@ -194,20 +194,20 @@ object decoders {
     def nullDecoder: Time                       = throw new NullDecodedFailure("TIME")
   }
 
-  implicit val zonedDateTimeElementDecoders: ElementDecoder[TimestampWithTZ] = 
+  implicit val zonedDateTimeElementDecoders: ElementDecoder[TimestampWithTZ] =
     new ElementDecoder[TimestampWithTZ] {
       private val zonedDateTimeFmt = new DateTimeFormatterBuilder()
         .appendPattern("yyyy-MM-dd HH:mm:ss")
         .appendFraction(ChronoField.MICRO_OF_SECOND, 0, 6, true)
         .appendOptional(DateTimeFormatter.ofPattern("X"))
         .toFormatter()
-      def textDecoder(text: String): TimestampWithTZ = Xor.catchNonFatal({
+      def textDecoder(text: String): TimestampWithTZ = Either.catchNonFatal({
         ZonedDateTime.parse(text, zonedDateTimeFmt)
       }).fold(
         {l => throw new ElementDecodingFailure("TIMESTAMP WITH TIME ZONE", l)},
         {r => r}
       )
-      def binaryDecoder(bytes: Array[Byte]): TimestampWithTZ = Xor.catchNonFatal({
+      def binaryDecoder(bytes: Array[Byte]): TimestampWithTZ = Either.catchNonFatal({
         val text = new String(bytes, StandardCharsets.UTF_8)
         ZonedDateTime.parse(text, zonedDateTimeFmt)
       }).fold(

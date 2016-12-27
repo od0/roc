@@ -41,8 +41,8 @@ lazy val testDependencies = Seq(
 scalacOptions in Test ++= Seq("-Yrangepos")
 
 lazy val baseSettings = Seq(
-  scalacOptions ++= compilerOptions, 
-  scalacOptions in (Compile, console) := compilerOptions, 
+  scalacOptions ++= compilerOptions,
+  scalacOptions in (Compile, console) := compilerOptions,
   scalacOptions in (Compile, doc) ++= Seq(
     "-doc-title", "roc",
     "-doc-version", version.value,
@@ -59,7 +59,7 @@ lazy val allSettings = buildSettings ++ baseSettings ++ Defaults.itSettings
 
 lazy val coreVersion = "0.0.5"
 
-lazy val catsVersion = "0.6.0"
+lazy val catsVersion = "0.8.1"
 
 lazy val finagleVersion = "6.38.0"
 
